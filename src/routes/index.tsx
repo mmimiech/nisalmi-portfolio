@@ -18,21 +18,32 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Channel = { k: "facebook" | "line" | "email" | "phone"; ic: string; label: string; hint: string };
+type Channel = {
+  k: "facebook" | "line" | "email" | "phone";
+  urlKey?: "facebookUrl" | "lineUrl";
+  ic: string;
+  label: string;
+  hint: string;
+  urlHint?: string;
+};
+
 const CHANNELS: Channel[] = [
-  { k: "facebook", ic: "📘", label: "Facebook", hint: "ชื่อบัญชี หรือ https://..." },
-  { k: "line", ic: "💬", label: "Line", hint: "@ไอดี Line หรือ https://..." },
+  { k: "facebook", urlKey: "facebookUrl", ic: "📘", label: "Facebook", hint: "ชื่อที่โชว์", urlHint: "ลิงก์โปรไฟล์ https://..." },
+  { k: "line", urlKey: "lineUrl", ic: "💬", label: "Line", hint: "ไอดีที่โชว์", urlHint: "ลิงก์ Line https://line.me/ti/p/~..." },
   { k: "email", ic: "✉", label: "Email", hint: "อีเมล" },
   { k: "phone", ic: "☎", label: "Phone", hint: "เบอร์โทร" },
 ];
 
-function channelHref(c: Channel, v: string) {
-  if (!v.trim()) return "";
+function channelHref(c: Channel, d: Data) {
+  const v = d[c.k].trim();
+  const customUrl = c.urlKey ? d[c.urlKey].trim() : "";
+  if (customUrl) return /^https?:\/\//i.test(customUrl) ? customUrl : `https://${customUrl}`;
+  if (!v) return "";
   if (/^https?:\/\//i.test(v)) return v;
   if (c.k === "email") return `mailto:${v}`;
   if (c.k === "phone") return `tel:${v.replace(/[^\d+]/g, "")}`;
-  if (c.k === "line") return `https://line.me/ti/p/${v.startsWith("@") ? v : "@" + v}`;
-  return `https://facebook.com/${encodeURIComponent(v.replace(/^@/, ""))}`;
+  if (c.k === "line") return `https://line.me/ti/p/${v.startsWith("~") ? v : "~" + v}`;
+  return `https://www.facebook.com/search/top/?q=${encodeURIComponent(v)}`;
 }
 
 const TILTS = ["-rotate-2", "rotate-1", "-rotate-1", "rotate-2"];
@@ -306,15 +317,21 @@ function Index() {
           <div className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             {CHANNELS.map((c) => {
               const v = d[c.k];
-              const href = channelHref(c, v);
+              const href = channelHref(c, d);
               return (
                 <div key={c.k} className="min-w-0 rounded-2xl border-2 border-secondary-foreground/30 p-4">
                   <div className="text-2xl">{c.ic}</div>
                   <div className="mt-1 text-xs font-semibold uppercase tracking-wide opacity-60">{c.label}</div>
                   <div className="mt-1 min-w-0 break-anywhere px-1 text-sm font-semibold">
                     {edit ? (
-                      <input value={v} placeholder={c.hint} onChange={(e) => set(c.k, e.target.value)}
-                        className="w-full rounded-lg border-2 border-dashed bg-card/70 px-2 py-1 text-foreground outline-none" />
+                      <div className="space-y-1.5">
+                        <input value={v} placeholder={c.hint} onChange={(e) => set(c.k, e.target.value)}
+                          className="w-full rounded-lg border-2 border-dashed bg-card/70 px-2 py-1 text-foreground outline-none" />
+                        {c.urlKey && (
+                          <input value={d[c.urlKey]} placeholder={c.urlHint} onChange={(e) => set(c.urlKey!, e.target.value)}
+                            className="w-full rounded-lg border-2 border-dashed bg-card/70 px-2 py-1 text-xs font-normal text-foreground outline-none" />
+                        )}
+                      </div>
                     ) : href ? (
                       <a href={href} {...(c.k === "email" || c.k === "phone" ? {} : { target: "_blank", rel: "noreferrer" })}
                         className="hover:text-primary">

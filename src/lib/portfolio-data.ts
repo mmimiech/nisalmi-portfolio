@@ -9,7 +9,7 @@ export type Project = {
 export type Data = {
   name: string; role: string; intro: string; avatar: string; about: string;
   skills: string[]; email: string; phone: string; location: string;
-  facebook: string; line: string; projects: Project[];
+  facebook: string; facebookUrl: string; line: string; lineUrl: string; projects: Project[];
 };
 
 export const DEFAULT: Data = {
@@ -19,8 +19,11 @@ export const DEFAULT: Data = {
   avatar: "",
   about: "เล่าเรื่องตัวเองสั้น ๆ ตรงนี้ — จบจากไหน สนใจอะไร ทำงานแบบไหน และอยากเติบโตไปทางไหน กด 'แก้ไข' ด้านบนเพื่อเปลี่ยนข้อความทั้งหมดได้เลย",
   skills: ["Figma", "React", "UX Research", "Branding", "Motion", "Teamwork"],
-  email: "", phone: "", location: "Nakhonsithammarat, TH",
-  facebook: "", line: "",
+  email: "nisalmi.pu@mail.wu.ac.th", phone: "0930864961", location: "Nakhonsithammarat, TH",
+  facebook: "Ni-salmee Puteh",
+  facebookUrl: "https://www.facebook.com/nisalmee.puteh?locale=th_TH",
+  line: "wonderfull_03",
+  lineUrl: "https://line.me/ti/p/~wonderfull_03",
   projects: [
     { id: "1", title: "โปรเจกต์แรก", tag: "UI/UX", caption: "อธิบายว่าโปรเจกต์นี้คืออะไร คุณทำส่วนไหน ใช้เครื่องมืออะไร และผลลัพธ์เป็นยังไง", image: "", link: "", detail: "", images: [] },
     { id: "2", title: "Brand Refresh", tag: "Branding", caption: "ใส่รูปและคำบรรยายผลงานได้ตามใจ กดที่การ์ดเพื่อดูแบบเต็ม", image: "", link: "", detail: "", images: [] },

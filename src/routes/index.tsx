@@ -157,9 +157,9 @@ function Index() {
       <header className="fixed inset-x-0 top-4 z-40 mx-auto flex w-[min(960px,92%)] items-center justify-between rounded-full border-2 bg-card/90 px-5 py-2 backdrop-blur brut">
         <a href="#top" className="font-display text-lg font-extrabold">✦ {"mimie".split(" ")[0]}</a>
         <nav className="hidden gap-6 text-sm font-medium md:flex">
-          <a href="#work" className="hover:underline">Work & Activities</a>
-          <a href="#about" className="hover:underline">About Me</a>
-          <a href="#contact" className="hover:underline">Contact</a>
+          <a href="#work" className="hover:underline">ผลงาน</a>
+          <a href="#about" className="hover:underline">เกี่ยวกับ</a>
+          <a href="#contact" className="hover:underline">ติดต่อ</a>
         </nav>
         <div className="flex gap-2">
           {canEdit ? (
@@ -224,7 +224,7 @@ function Index() {
       {/* work */}
       <section id="work" className="mx-auto max-w-6xl px-6 py-24">
         <Reveal className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-3xl font-extrabold md:text-6xl">Work & Activities<span className="text-accent">.</span></h2>
+          <h2 className="text-3xl font-extrabold md:text-6xl">ผลงาน/กิจกรรม<span className="text-accent">.</span></h2>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
               <button key={t} onClick={() => setFilter(t)}

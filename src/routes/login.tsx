@@ -63,7 +63,7 @@ function Login() {
     <div className="grid min-h-screen place-items-center px-6 py-16">
       <div className="w-full max-w-sm rounded-3xl border-2 bg-card p-8 brut-lg">
         <h1 className="font-display text-3xl font-extrabold">{mode === "in" ? "เข้าสู่ระบบ" : "สมัครบัญชี"}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">เฉพาะเจ้าของพอร์ตโฟลิโอเท่านั้นที่แก้ไขได้</p>
+        <p className="mt-2 text-sm text-muted-foreground">เฉพาะ Nisalmi เท่านั้นที่แก้ไขได้</p>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <input id="login-email" name="email" type="email" required autoComplete="email" placeholder="อีเมล"
             className="w-full rounded-xl border-2 bg-background px-3 py-2 outline-none" />

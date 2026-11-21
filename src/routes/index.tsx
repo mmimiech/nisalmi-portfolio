@@ -144,7 +144,7 @@ function Index() {
     <div className="min-h-screen overflow-x-hidden">
       {/* nav */}
       <header className="fixed inset-x-0 top-4 z-40 mx-auto flex w-[min(960px,92%)] items-center justify-between rounded-full border-2 bg-card/90 px-5 py-2 backdrop-blur brut">
-        <a href="#top" className="font-display text-lg font-extrabold">✦ {d.name.split(" ")[0]}</a>
+        <a href="#top" className="font-display text-lg font-extrabold">✦ {"mimie".split(" ")[0]}</a>
         <nav className="hidden gap-6 text-sm font-medium md:flex">
           <a href="#work" className="hover:underline">ผลงาน</a>
           <a href="#about" className="hover:underline">เกี่ยวกับ</a>
@@ -213,7 +213,7 @@ function Index() {
       {/* work */}
       <section id="work" className="mx-auto max-w-6xl px-6 py-24">
         <Reveal className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-4xl font-extrabold md:text-6xl">ผลงาน<span className="text-accent">.</span></h2>
+          <h2 className="text-3xl font-extrabold md:text-6xl">ผลงาน/กิรกรรม<span className="text-accent">.</span></h2>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
               <button key={t} onClick={() => setFilter(t)}
@@ -276,7 +276,7 @@ function Index() {
       <section id="about" className="border-y-2 bg-pop px-6 py-24">
         <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-2">
           <Reveal>
-            <h2 className="text-4xl font-extrabold md:text-6xl">เกี่ยวกับ<br />ตัวฉัน ✌︎</h2>
+            <h2 className="text-4xl font-extrabold md:text-6xl">About Me<br /></h2>
           </Reveal>
           <Reveal>
             <p className="text-lg leading-relaxed"><Editable edit={edit} multiline value={d.about} onChange={(v) => set("about", v)} /></p>
@@ -333,7 +333,7 @@ function Index() {
             คัดลอกอีเมล
           </button>
         </Reveal>
-        <p className="mt-12 text-center text-sm text-muted-foreground">© {new Date().getFullYear()} {d.name}</p>
+        <p className="mt-12 text-center text-sm text-muted-foreground">© {new Date().getFullYear()} {"Nisalmi Puteh. All rights reserved."}</p>
       </section>
 
 

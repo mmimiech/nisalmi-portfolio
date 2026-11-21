@@ -213,7 +213,7 @@ function Index() {
       {/* work */}
       <section id="work" className="mx-auto max-w-6xl px-6 py-24">
         <Reveal className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-3xl font-extrabold md:text-6xl">ผลงาน/กิรกรรม<span className="text-accent">.</span></h2>
+          <h2 className="text-3xl font-extrabold md:text-6xl">ผลงาน/กิจกรรม<span className="text-accent">.</span></h2>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
               <button key={t} onClick={() => setFilter(t)}
@@ -273,7 +273,7 @@ function Index() {
       </section>
 
       {/* about */}
-      <section id="about" className="border-y-2 bg-pop px-6 py-24">
+      <section id="about" className="border-y-2 bg-pop px-10 py-15">
         <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-2">
           <Reveal>
             <h2 className="text-4xl font-extrabold md:text-6xl">About Me<br /></h2>

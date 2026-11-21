@@ -19,8 +19,8 @@ export const DEFAULT: Data = {
   avatar: "",
   about: "เล่าเรื่องตัวเองสั้น ๆ ตรงนี้ — จบจากไหน สนใจอะไร ทำงานแบบไหน และอยากเติบโตไปทางไหน กด 'แก้ไข' ด้านบนเพื่อเปลี่ยนข้อความทั้งหมดได้เลย",
   skills: ["Figma", "React", "UX Research", "Branding", "Motion", "Teamwork"],
-  email: "nisalmi.pu@mail.wu.ac.th", phone: "0930864961", location: "Nakhonsithammarat, TH",
-  facebook: "Ni-salmee Puteh", line: "wonderfull_03",
+  email: "", phone: "", location: "Nakhonsithammarat, TH",
+  facebook: "", line: "",
   projects: [
     { id: "1", title: "โปรเจกต์แรก", tag: "UI/UX", caption: "อธิบายว่าโปรเจกต์นี้คืออะไร คุณทำส่วนไหน ใช้เครื่องมืออะไร และผลลัพธ์เป็นยังไง", image: "", link: "", detail: "", images: [] },
     { id: "2", title: "Brand Refresh", tag: "Branding", caption: "ใส่รูปและคำบรรยายผลงานได้ตามใจ กดที่การ์ดเพื่อดูแบบเต็ม", image: "", link: "", detail: "", images: [] },

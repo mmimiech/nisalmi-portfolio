@@ -13,7 +13,7 @@ export type Data = {
 };
 
 export const DEFAULT: Data = {
-  name: "mmimiech",
+  name: "Nisalmi Puteh",
   role: "School of Infomatics (Digital Technology in Medicine) ",
   intro: "ชอบทำของที่ใช้งานได้จริง และหน้าตาดีด้วย ✦ พร้อมเรียนรู้และลุยงานใหม่ ๆ",
   avatar: "",

@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { SpeedInsights } from "@vercel/speed-insights/react";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -84,6 +86,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   return (
-    <Outlet />
+    <>
+      <Outlet />
+      <SpeedInsights />
+    </>
   );
 }

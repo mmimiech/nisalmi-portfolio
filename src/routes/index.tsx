@@ -107,6 +107,7 @@ function ImagePick({ onPick, children, className = "" }: { onPick: (s: string) =
 
 function Index() {
   const [d, setD] = useState<Data>(DEFAULT);
+  const [loaded, setLoaded] = useState(false);
   const [edit, setEdit] = useState(false);
   const [filter, setFilter] = useState("ทั้งหมด");
   const [toast, setToast] = useState("");
@@ -114,7 +115,10 @@ function Index() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadPortfolio().then((r) => setD(r)).catch(() => {});
+    loadPortfolio()
+      .then((r) => setD(r))
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -124,6 +128,10 @@ function Index() {
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2200); };
   const toggleEdit = async () => {
+    if (!loaded && !edit) {
+      flash("กำลังโหลดข้อมูลจากฐานข้อมูล…");
+      return;
+    }
     if (edit) {
       setSaving(true);
       try {
@@ -165,9 +173,9 @@ function Index() {
           {canEdit ? (
             <>
               <button onClick={() => supabase.auth.signOut().then(() => window.location.reload())} className="rounded-full border-2 px-3 py-1.5 text-sm font-semibold">ออก</button>
-              <button onClick={toggleEdit} disabled={saving}
-                className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold transition ${edit ? "bg-accent text-accent-foreground" : "bg-primary"}`}>
-                {edit ? (saving ? "กำลังบันทึก…" : "เสร็จสิ้น ✓") : "✎ แก้ไข"}
+              <button onClick={toggleEdit} disabled={saving || (!loaded && !edit)}
+                className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold transition disabled:opacity-50 ${edit ? "bg-accent text-accent-foreground" : "bg-primary"}`}>
+                {edit ? (saving ? "กำลังบันทึก…" : "เสร็จสิ้น ✓") : (loaded ? "✎ แก้ไข" : "กำลังโหลด…")}
               </button>
             </>
           ) : (

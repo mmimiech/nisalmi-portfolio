@@ -107,7 +107,6 @@ function ImagePick({ onPick, children, className = "" }: { onPick: (s: string) =
 
 function Index() {
   const [d, setD] = useState<Data>(DEFAULT);
-  const [loaded, setLoaded] = useState(false);
   const [edit, setEdit] = useState(false);
   const [filter, setFilter] = useState("ทั้งหมด");
   const [toast, setToast] = useState("");
@@ -115,10 +114,7 @@ function Index() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadPortfolio()
-      .then((r) => setD(r))
-      .catch(() => {})
-      .finally(() => setLoaded(true));
+    loadPortfolio().then((r) => setD(r)).catch(() => {});
   }, []);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -128,10 +124,6 @@ function Index() {
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2200); };
   const toggleEdit = async () => {
-    if (!loaded && !edit) {
-      flash("กำลังโหลดข้อมูลจากฐานข้อมูล…");
-      return;
-    }
     if (edit) {
       setSaving(true);
       try {
@@ -173,9 +165,9 @@ function Index() {
           {canEdit ? (
             <>
               <button onClick={() => supabase.auth.signOut().then(() => window.location.reload())} className="rounded-full border-2 px-3 py-1.5 text-sm font-semibold">ออก</button>
-              <button onClick={toggleEdit} disabled={saving || (!loaded && !edit)}
-                className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold transition disabled:opacity-50 ${edit ? "bg-accent text-accent-foreground" : "bg-primary"}`}>
-                {edit ? (saving ? "กำลังบันทึก…" : "เสร็จสิ้น ✓") : (loaded ? "✎ แก้ไข" : "กำลังโหลด…")}
+              <button onClick={toggleEdit} disabled={saving}
+                className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold transition ${edit ? "bg-accent text-accent-foreground" : "bg-primary"}`}>
+                {edit ? (saving ? "กำลังบันทึก…" : "เสร็จสิ้น ✓") : "✎ แก้ไข"}
               </button>
             </>
           ) : (
@@ -232,7 +224,7 @@ function Index() {
       {/* work */}
       <section id="work" className="mx-auto max-w-6xl px-6 py-24">
         <Reveal className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-3xl font-extrabold md:text-6xl">Work & Activities<span className="text-accent">.</span></h2>
+          <h2 className="text-3xl font-extrabold md:text-6xl">ผลงาน/กิจกรรม<span className="text-accent">.</span></h2>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
               <button key={t} onClick={() => setFilter(t)}

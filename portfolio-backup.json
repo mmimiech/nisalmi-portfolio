@@ -1,0 +1,54 @@
+{
+  "line": "wonderfull_03",
+  "name": "Nisalmi Puteh",
+  "role": "School of Infomatics (Digital Technology in Medicine) ",
+  "about": "เล่าเรื่องตัวเองสั้น ๆ ตรงนี้ — จบจากไหน สนใจอะไร ทำงานแบบไหน และอยากเติบโตไปทางไหน กด 'แก้ไข' ด้านบนเพื่อเปลี่ยนข้อความทั้งหมดได้เลย",
+  "email": "nisalmi.pu@mail.wu.ac.th",
+  "intro": "ชอบทำของที่ใช้งานได้จริง และหน้าตาดีด้วย ✦ พร้อมเรียนรู้และลุยงานใหม่ ๆ",
+  "phone": "0930864961",
+  "avatar": "",
+  "skills": [
+    "Figma",
+    "React",
+    "UX Research",
+    "Branding",
+    "Motion",
+    "Teamwork"
+  ],
+  "lineUrl": "https://line.me/ti/p/~wonderfull_03",
+  "facebook": "Ni-salmee Puteh",
+  "location": "Nakhonsithammarat, TH",
+  "projects": [
+    {
+      "id": "1",
+      "tag": "UI/UX",
+      "link": "",
+      "image": "",
+      "title": "โปรเจกต์แรก",
+      "detail": "",
+      "images": [],
+      "caption": "อธิบายว่าโปรเจกต์นี้คืออะไร คุณทำส่วนไหน ใช้เครื่องมืออะไร และผลลัพธ์เป็นยังไง"
+    },
+    {
+      "id": "2",
+      "tag": "Branding",
+      "link": "",
+      "image": "",
+      "title": "Brand Refresh",
+      "detail": "",
+      "images": [],
+      "caption": "ใส่รูปและคำบรรยายผลงานได้ตามใจ กดที่การ์ดเพื่อดูแบบเต็ม"
+    },
+    {
+      "id": "3",
+      "tag": "Dev",
+      "link": "",
+      "image": "",
+      "title": "Side Project",
+      "detail": "",
+      "images": [],
+      "caption": "ผลงานส่วนตัวก็นับนะ! โชว์ความเป็นตัวเองได้เต็มที่"
+    }
+  ],
+  "facebookUrl": "https://www.facebook.com/nisalmee.puteh?locale=th_TH"
+}

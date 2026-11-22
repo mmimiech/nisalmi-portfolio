@@ -14,7 +14,7 @@ export type Data = {
 
 export const DEFAULT: Data = {
   name: "Nisalmi Puteh",
-  role: "นิศัลมี ปูเต๊ะ ",
+  role: "นิศัลมี ปูเต๊ะ ชื่อเล่น มีมี่ ",
   intro: "School of Infomatics (Digital Technology in Medicine)",
   avatar: "/profile.jpg",
   about: "Hello, I am Nisalmi Puteh, a third-year undergraduate student majoring in Digital Technology in Medicine at the School of Informatics, Walailak University. I am dedicated to applying technological knowledge and systematic problem-solving skills to develop practical and effective solutions. I am a highly responsible and detail-oriented individual who is always eager to learn new tools and workflows. Adaptable and collaborative by nature, I am looking forward to contributing my skills to support your team's objectives while gaining valuable real-world experience through an internship.",

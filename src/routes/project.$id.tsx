@@ -24,17 +24,6 @@ export const Route = createFileRoute("/project/$id")({
   component: ProjectPage,
 });
 
-type ProjectWithFocus = Project & {
-  imagePos?: string;
-  imagePositions?: Record<string, string>;
-};
-
-const FOCUS_PRESETS = [
-  { label: "บน", value: "50% 15%" },
-  { label: "กลาง", value: "50% 50%" },
-  { label: "ล่าง", value: "50% 85%" },
-] as const;
-
 const STORAGE_BUCKET = "portfolio";
 
 function compressImage(file: File, max = 900, quality = 0.72): Promise<string> {
@@ -113,12 +102,6 @@ function ImagePick({
   );
 }
 
-function getImagePosition(proj: ProjectWithFocus, src: string, index: number): string {
-  if (proj.imagePositions?.[src]) return proj.imagePositions[src]!;
-  if (index === 0 && proj.imagePos) return proj.imagePos;
-  return "50% 20%";
-}
-
 function ProjectPage() {
   const { id } = useParams({ from: "/project/$id" });
   const [d, setD] = useState<Data>(DEFAULT);
@@ -144,29 +127,17 @@ function ProjectPage() {
     });
   }, []);
 
-  const p = d.projects.find((x) => x.id === id) as ProjectWithFocus | undefined;
+  const p = d.projects.find((x) => x.id === id);
   const flash = (m: string) => {
     setToast(m);
     setTimeout(() => setToast(""), 2200);
   };
 
-  const setP = (patch: Partial<ProjectWithFocus>) =>
+  const setP = (patch: Partial<Project>) =>
     setD((prev) => ({
       ...prev,
       projects: prev.projects.map((x) => (x.id === id ? { ...x, ...patch } : x)),
     }));
-
-  const setPhotoFocus = (src: string, index: number, pos: string) => {
-    if (!p) return;
-    const nextPositions: Record<string, string> = {
-      ...(p.imagePositions ?? {}),
-      [src]: pos,
-    };
-    setP({
-      imagePositions: nextPositions,
-      ...(index === 0 ? { imagePos: pos } : {}),
-    });
-  };
 
   const toggleEdit = async () => {
     if (edit) {
@@ -242,53 +213,30 @@ function ProjectPage() {
 
         {/* gallery */}
         <div className="mt-10 grid items-start gap-6 sm:grid-cols-2">
-          {images.map((src, i) => {
-            const pos = getImagePosition(p, src, i);
-            return (
-              <div key={i} className="space-y-2">
-                <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border-2 bg-muted brut">
-                  <img
-                    src={src}
-                    alt={`${p.title} ${i + 1}`}
-                    onClick={() => !edit && setLightbox(src)}
-                    style={{ objectPosition: pos }}
-                    className="h-full w-full cursor-zoom-in object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  {edit && (
-                    <button
-                      onClick={() => {
-                        if (i === 0) setP({ image: "" });
-                        else setP({ images: (p.images ?? []).filter((_, j) => j !== i - 1) });
-                      }}
-                      className="absolute right-3 top-3 rounded-full border-2 bg-destructive px-3 py-1 text-sm font-bold text-destructive-foreground"
-                    >
-                      ลบรูปนี้
-                    </button>
-                  )}
-                </div>
-
-                {edit && (
-                  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border-2 bg-card px-3 py-2 text-xs">
-                    <span className="font-semibold text-muted-foreground">โชว์ส่วน:</span>
-                    {FOCUS_PRESETS.map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setPhotoFocus(src, i, preset.value)}
-                        className={`rounded-full border px-2.5 py-0.5 font-semibold transition ${
-                          pos === preset.value
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted hover:bg-accent"
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {images.map((src, i) => (
+            <div
+              key={i}
+              className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border-2 bg-muted brut"
+            >
+              <img
+                src={src}
+                alt={`${p.title} ${i + 1}`}
+                onClick={() => !edit && setLightbox(src)}
+                className="h-full w-full cursor-zoom-in object-cover object-top transition duration-500 group-hover:scale-105"
+              />
+              {edit && (
+                <button
+                  onClick={() => {
+                    if (i === 0) setP({ image: "" });
+                    else setP({ images: (p.images ?? []).filter((_, j) => j !== i - 1) });
+                  }}
+                  className="absolute right-3 top-3 rounded-full border-2 bg-destructive px-3 py-1 text-sm font-bold text-destructive-foreground"
+                >
+                  ลบรูปนี้
+                </button>
+              )}
+            </div>
+          ))}
           {edit && (
             <ImagePick
               onPick={(s) =>

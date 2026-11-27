@@ -4,6 +4,8 @@ import { supabase } from "@/client";
 import { DEFAULT, loadPortfolio, savePortfolio, OWNER_EMAIL, type Data, type Project } from "@/lib/portfolio-data";
 // Project type still used via setP patch typing below.
 
+type PortfolioData = Data & { cvUrl?: string };
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -106,7 +108,7 @@ function ImagePick({ onPick, children, className = "" }: { onPick: (s: string) =
 }
 
 function Index() {
-  const [d, setD] = useState<Data>(DEFAULT);
+  const [d, setD] = useState<PortfolioData>(DEFAULT);
   const [edit, setEdit] = useState(false);
   const [filter, setFilter] = useState("ทั้งหมด");
   const [toast, setToast] = useState("");
@@ -138,7 +140,7 @@ function Index() {
     }
     setEdit(!edit);
   };
-  const set = <K extends keyof Data>(k: K, v: Data[K]) => setD((p) => ({ ...p, [k]: v }));
+  const set = <K extends keyof PortfolioData>(k: K, v: PortfolioData[K]) => setD((p) => ({ ...p, [k]: v }));
   const setP = (id: string, patch: Partial<Project>) =>
     setD((p) => ({ ...p, projects: p.projects.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
   const addP = () => setD((p) => ({ ...p, projects: [...p.projects, { id: Date.now().toString(), title: "ผลงานใหม่", tag: "New", caption: "คำบรรยายผลงาน", image: "", link: "", detail: "", images: [] }] }));
@@ -148,6 +150,7 @@ function Index() {
     [a[i], a[j]] = [a[j]!, a[i]!]; return { ...p, projects: a };
   });
 
+  const cvHref = (d.cvUrl ?? "").trim();
   const tags = ["ทั้งหมด", ...Array.from(new Set(d.projects.map((p) => p.tag)))];
   const shown = filter === "ทั้งหมด" ? d.projects : d.projects.filter((p) => p.tag === filter);
 
@@ -192,9 +195,28 @@ function Index() {
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
               <Editable edit={edit} multiline value={d.intro} onChange={(v) => set("intro", v)} />
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <a href="#work" className="rounded-full border-2 bg-secondary px-6 py-3 font-semibold text-secondary-foreground brut brut-hover">ดูผลงาน →</a>
               <a href="#contact" className="rounded-full border-2 bg-card px-6 py-3 font-semibold brut brut-hover">ติดต่อเลย</a>
+              {cvHref && (
+                <a
+                  href={/^https?:\/\//i.test(cvHref) ? cvHref : `https://${cvHref}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full border-2 bg-primary px-6 py-3 font-semibold text-primary-foreground brut brut-hover"
+                >
+                  CV
+                </a>
+              )}
+              {edit && (
+                <input
+                  type="url"
+                  value={d.cvUrl ?? ""}
+                  onChange={(e) => set("cvUrl", e.target.value)}
+                  placeholder="วางลิงก์ Google (Drive / Docs) สำหรับปุ่ม CV"
+                  className="min-w-[240px] flex-1 rounded-full border-2 border-dashed bg-card/80 px-4 py-2.5 text-sm outline-none"
+                />
+              )}
             </div>
           </Reveal>
           <Reveal className="relative mx-auto w-64 md:w-80">

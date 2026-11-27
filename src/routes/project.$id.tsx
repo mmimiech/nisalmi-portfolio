@@ -1,7 +1,14 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/client";
-import { DEFAULT, loadPortfolio, savePortfolio, OWNER_EMAIL, type Data, type Project } from "@/lib/portfolio-data";
+import {
+  DEFAULT,
+  loadPortfolio,
+  savePortfolio,
+  OWNER_EMAIL,
+  type Data,
+  type Project,
+} from "@/lib/portfolio-data";
 
 export const Route = createFileRoute("/project/$id")({
   head: () => ({
@@ -17,32 +24,99 @@ export const Route = createFileRoute("/project/$id")({
   component: ProjectPage,
 });
 
-function readImage(file: File): Promise<string> {
-  return new Promise((res) => {
+type ProjectWithFocus = Project & {
+  imagePos?: string;
+  imagePositions?: Record<string, string>;
+};
+
+const FOCUS_PRESETS = [
+  { label: "บน", value: "50% 15%" },
+  { label: "กลาง", value: "50% 50%" },
+  { label: "ล่าง", value: "50% 85%" },
+] as const;
+
+const STORAGE_BUCKET = "portfolio";
+
+function compressImage(file: File, max = 900, quality = 0.72): Promise<string> {
+  return new Promise((res, rej) => {
     const img = new Image();
     const r = new FileReader();
     r.onload = () => {
       img.onload = () => {
-        const max = 1400, s = Math.min(1, max / Math.max(img.width, img.height));
+        const s = Math.min(1, max / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
-        c.width = img.width * s; c.height = img.height * s;
-        c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
-        res(c.toDataURL("image/jpeg", 0.82));
+        c.width = Math.max(1, Math.round(img.width * s));
+        c.height = Math.max(1, Math.round(img.height * s));
+        const ctx = c.getContext("2d");
+        if (!ctx) return rej(new Error("Canvas not available"));
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL("image/jpeg", quality));
       };
+      img.onerror = rej;
       img.src = r.result as string;
     };
+    r.onerror = rej;
     r.readAsDataURL(file);
   });
 }
 
-function ImagePick({ onPick, children, className = "" }: { onPick: (s: string) => void; children: ReactNode; className?: string }) {
+async function uploadImage(file: File): Promise<string> {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const safeExt = ext || "jpg";
+  const path = `projects/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+
+  if (!error) {
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    if (data?.publicUrl) return data.publicUrl;
+  }
+
+  return compressImage(file, 900, 0.72);
+}
+
+function ImagePick({
+  onPick,
+  onError,
+  children,
+  className = "",
+}: {
+  onPick: (s: string) => void;
+  onError?: (msg: string) => void;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <label className={`cursor-pointer ${className}`}>
       {children}
-      <input type="file" accept="image/*" className="hidden"
-        onChange={async (e) => { const f = e.target.files?.[0]; if (f) onPick(await readImage(f)); }} />
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          try {
+            const url = await uploadImage(f);
+            onPick(url);
+          } catch {
+            onError?.("อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+          } finally {
+            e.target.value = "";
+          }
+        }}
+      />
     </label>
   );
+}
+
+function getImagePosition(proj: ProjectWithFocus, src: string, index: number): string {
+  if (proj.imagePositions?.[src]) return proj.imagePositions[src]!;
+  if (index === 0 && proj.imagePos) return proj.imagePos;
+  return "50% 20%";
 }
 
 function ProjectPage() {
@@ -56,19 +130,43 @@ function ProjectPage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPortfolio().then((r) => { setD(r); setLoaded(true); }).catch(() => setLoaded(true));
+    loadPortfolio()
+      .then((r) => {
+        setD(r);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
   }, []);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCanEdit((data.user?.email ?? "").toLowerCase() === OWNER_EMAIL.toLowerCase());
     });
   }, []);
 
-  const p = d.projects.find((x) => x.id === id);
-  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2200); };
+  const p = d.projects.find((x) => x.id === id) as ProjectWithFocus | undefined;
+  const flash = (m: string) => {
+    setToast(m);
+    setTimeout(() => setToast(""), 2200);
+  };
 
-  const setP = (patch: Partial<Project>) =>
-    setD((prev) => ({ ...prev, projects: prev.projects.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const setP = (patch: Partial<ProjectWithFocus>) =>
+    setD((prev) => ({
+      ...prev,
+      projects: prev.projects.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+    }));
+
+  const setPhotoFocus = (src: string, index: number, pos: string) => {
+    if (!p) return;
+    const nextPositions: Record<string, string> = {
+      ...(p.imagePositions ?? {}),
+      [src]: pos,
+    };
+    setP({
+      imagePositions: nextPositions,
+      ...(index === 0 ? { imagePos: pos } : {}),
+    });
+  };
 
   const toggleEdit = async () => {
     if (edit) {
@@ -86,102 +184,192 @@ function ProjectPage() {
     setEdit(!edit);
   };
 
-  if (!loaded) return <div className="grid min-h-screen place-items-center font-display text-2xl">กำลังโหลด…</div>;
-  if (!p) return (
-    <div className="grid min-h-screen place-items-center">
-      <div className="text-center">
-        <p className="font-display text-4xl font-extrabold">ไม่พบผลงานนี้</p>
-        <Link to="/" className="mt-6 inline-block rounded-full border-2 bg-primary px-6 py-3 font-semibold brut">← กลับหน้าหลัก</Link>
+  if (!loaded)
+    return <div className="grid min-h-screen place-items-center font-display text-2xl">กำลังโหลด…</div>;
+
+  if (!p)
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <div className="text-center">
+          <p className="font-display text-4xl font-extrabold">ไม่พบผลงานนี้</p>
+          <Link
+            to="/"
+            className="mt-6 inline-block rounded-full border-2 bg-primary px-6 py-3 font-semibold brut"
+          >
+            ← กลับหน้าหลัก
+          </Link>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   const images = [p.image, ...(p.images ?? [])].filter(Boolean);
 
   return (
     <div className="min-h-screen overflow-x-hidden">
       <header className="fixed inset-x-0 top-4 z-40 mx-auto flex w-[min(960px,92%)] items-center justify-between rounded-full border-2 bg-card/90 px-5 py-2 backdrop-blur brut">
-        <Link to="/" className="font-display text-lg font-extrabold">← กลับ</Link>
+        <Link to="/" className="font-display text-lg font-extrabold">
+          ← กลับ
+        </Link>
         {canEdit && (
-          <button onClick={toggleEdit} disabled={saving}
-            className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold transition ${edit ? "bg-accent text-accent-foreground" : "bg-primary"}`}>
+          <button
+            onClick={toggleEdit}
+            disabled={saving}
+            className={`rounded-full border-2 px-4 py-1.5 text-sm font-bold transition ${
+              edit ? "bg-accent text-accent-foreground" : "bg-primary"
+            }`}
+          >
             {edit ? (saving ? "กำลังบันทึก…" : "เสร็จสิ้น ✓") : "✎ แก้ไข"}
           </button>
         )}
       </header>
 
       <section className="dotgrid mx-auto max-w-4xl px-6 pb-24 pt-32">
-        <span className="inline-block -rotate-2 rounded-full border-2 bg-pop px-4 py-1 text-sm font-semibold brut">{p.tag}</span>
+        <span className="inline-block -rotate-2 rounded-full border-2 bg-pop px-4 py-1 text-sm font-semibold brut">
+          {p.tag}
+        </span>
         <h1 className="mt-4 text-4xl font-extrabold leading-tight md:text-6xl">
           {edit ? (
-            <input value={p.title} onChange={(e) => setP({ title: e.target.value })}
-              className="w-full rounded-lg border-2 border-dashed bg-card/70 px-2 outline-none" />
-          ) : p.title}
+            <input
+              value={p.title}
+              onChange={(e) => setP({ title: e.target.value })}
+              className="w-full rounded-lg border-2 border-dashed bg-card/70 px-2 outline-none"
+            />
+          ) : (
+            p.title
+          )}
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">{p.caption}</p>
 
         {/* gallery */}
-        <div className="mt-10 grid gap-6 sm:grid-cols-2">
-          {images.map((src, i) => (
-            <div key={i} className="group relative overflow-hidden rounded-2xl border-2 bg-muted brut">
-              <img src={src} alt={`${p.title} ${i + 1}`} onClick={() => !edit && setLightbox(src)}
-                className="w-full cursor-zoom-in object-cover transition duration-500 group-hover:scale-105" />
-              {edit && (
-                <button onClick={() => {
-                  if (i === 0) setP({ image: "" });
-                  else setP({ images: (p.images ?? []).filter((_, j) => j !== i - 1) });
-                }} className="absolute right-3 top-3 rounded-full border-2 bg-destructive px-3 py-1 text-sm font-bold text-destructive-foreground">
-                  ลบรูปนี้
-                </button>
-              )}
-            </div>
-          ))}
+        <div className="mt-10 grid items-start gap-6 sm:grid-cols-2">
+          {images.map((src, i) => {
+            const pos = getImagePosition(p, src, i);
+            return (
+              <div key={i} className="space-y-2">
+                <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border-2 bg-muted brut">
+                  <img
+                    src={src}
+                    alt={`${p.title} ${i + 1}`}
+                    onClick={() => !edit && setLightbox(src)}
+                    style={{ objectPosition: pos }}
+                    className="h-full w-full cursor-zoom-in object-cover transition duration-500 group-hover:scale-105"
+                  />
+                  {edit && (
+                    <button
+                      onClick={() => {
+                        if (i === 0) setP({ image: "" });
+                        else setP({ images: (p.images ?? []).filter((_, j) => j !== i - 1) });
+                      }}
+                      className="absolute right-3 top-3 rounded-full border-2 bg-destructive px-3 py-1 text-sm font-bold text-destructive-foreground"
+                    >
+                      ลบรูปนี้
+                    </button>
+                  )}
+                </div>
+
+                {edit && (
+                  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border-2 bg-card px-3 py-2 text-xs">
+                    <span className="font-semibold text-muted-foreground">โชว์ส่วน:</span>
+                    {FOCUS_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setPhotoFocus(src, i, preset.value)}
+                        className={`rounded-full border px-2.5 py-0.5 font-semibold transition ${
+                          pos === preset.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted hover:bg-accent"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {edit && (
-            <ImagePick onPick={(s) => setP(images.length === 0 ? { image: s } : { images: [...(p.images ?? []), s] })}
-              className="grid min-h-48 place-items-center rounded-2xl border-2 border-dashed bg-card/50 font-display text-xl font-bold transition hover:bg-primary">
+            <ImagePick
+              onPick={(s) =>
+                setP(images.length === 0 ? { image: s } : { images: [...(p.images ?? []), s] })
+              }
+              onError={flash}
+              className="grid aspect-[4/3] w-full place-items-center rounded-2xl border-2 border-dashed bg-card/50 font-display text-xl font-bold transition hover:bg-primary"
+            >
               + เพิ่มรูป
             </ImagePick>
           )}
         </div>
         {images.length === 0 && !edit && (
-          <div className="mt-10 grid h-48 place-items-center rounded-2xl border-2 bg-muted font-display text-5xl text-muted-foreground">✦</div>
+          <div className="mt-10 grid h-48 place-items-center rounded-2xl border-2 bg-muted font-display text-5xl text-muted-foreground">
+            ✦
+          </div>
         )}
 
         {/* detail */}
         <div className="mt-12 rounded-3xl border-2 bg-card p-8 brut">
           <h2 className="font-display text-2xl font-extrabold">รายละเอียดเพิ่มเติม</h2>
           {edit ? (
-            <textarea value={p.detail ?? ""} onChange={(e) => setP({ detail: e.target.value })} rows={8}
+            <textarea
+              value={p.detail ?? ""}
+              onChange={(e) => setP({ detail: e.target.value })}
+              rows={8}
               placeholder="เล่ารายละเอียดของผลงานชิ้นนี้ — เป้าหมาย กระบวนการ เครื่องมือที่ใช้ ผลลัพธ์ สิ่งที่เรียนรู้…"
-              className="mt-4 w-full resize-y rounded-lg border-2 border-dashed bg-card/70 p-3 leading-relaxed outline-none" />
+              className="mt-4 w-full resize-y rounded-lg border-2 border-dashed bg-card/70 p-3 leading-relaxed outline-none"
+            />
           ) : (
             <p className="mt-4 whitespace-pre-line leading-relaxed text-muted-foreground">
               {p.detail || "ยังไม่มีรายละเอียดเพิ่มเติม"}
             </p>
           )}
           {edit && (
-            <input placeholder="ลิงก์ผลงาน (ถ้ามี)" value={p.link} onChange={(e) => setP({ link: e.target.value })}
-              className="mt-4 w-full rounded-lg border-2 border-dashed bg-card/70 px-3 py-2 text-sm outline-none" />
+            <input
+              placeholder="ลิงก์ผลงาน (ถ้ามี)"
+              value={p.link}
+              onChange={(e) => setP({ link: e.target.value })}
+              className="mt-4 w-full rounded-lg border-2 border-dashed bg-card/70 px-3 py-2 text-sm outline-none"
+            />
           )}
           {!edit && p.link && (
-            <a href={p.link} target="_blank" rel="noreferrer"
-              className="mt-6 inline-block rounded-full border-2 bg-secondary px-6 py-2.5 font-semibold text-secondary-foreground brut-hover">
+            <a
+              href={p.link}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 inline-block rounded-full border-2 bg-secondary px-6 py-2.5 font-semibold text-secondary-foreground brut-hover"
+            >
               เปิดลิงก์ผลงาน ↗
             </a>
           )}
         </div>
 
         <div className="mt-10 text-center">
-          <Link to="/" className="rounded-full border-2 bg-card px-6 py-3 font-semibold brut brut-hover">← ดูผลงานอื่น ๆ</Link>
+          <Link
+            to="/"
+            className="rounded-full border-2 bg-card px-6 py-3 font-semibold brut brut-hover"
+          >
+            ← ดูผลงานอื่น ๆ
+          </Link>
         </div>
       </section>
 
       {lightbox && (
-        <div onClick={() => setLightbox(null)} className="fixed inset-0 z-50 grid place-items-center bg-secondary/80 p-4 backdrop-blur-sm animate-in fade-in">
-          <img src={lightbox} alt={p.title} className="max-h-[90vh] max-w-full rounded-2xl border-2 brut-lg" />
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 grid place-items-center bg-secondary/80 p-4 backdrop-blur-sm animate-in fade-in"
+        >
+          <img
+            src={lightbox}
+            alt={p.title}
+            className="max-h-[90vh] max-w-full rounded-2xl border-2 brut-lg"
+          />
         </div>
       )}
-      {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border-2 bg-primary px-5 py-2 font-semibold brut animate-in slide-in-from-bottom-4">{toast}</div>}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border-2 bg-primary px-5 py-2 font-semibold brut animate-in slide-in-from-bottom-4">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

@@ -294,16 +294,18 @@ function ImageFrame({
               ✥ ลากเลื่อน ({pos})
             </span>
           )}
-          <ImagePick
-            onPick={(url) => {
-              onPick(url);
-              onPosChange("50% 50%");
-            }}
-            onError={onError}
-            className="ml-auto rounded-full border-2 bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm"
-          >
-            {pickLabel}
-          </ImagePick>
+          <div className="ml-auto shrink-0">
+            <ImagePick
+              onPick={(url: string) => {
+                onPick(url);
+                onPosChange("50% 50%");
+              }}
+              onError={(msg: string) => onError?.(msg)}
+              className="inline-block rounded-full border-2 bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm"
+            >
+              {pickLabel}
+            </ImagePick>
+          </div>
         </div>
       )}
     </div>

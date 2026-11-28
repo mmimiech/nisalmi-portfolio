@@ -8,6 +8,7 @@ export type Project = {
   tag: string;
   caption: string;
   image: string;
+  imagePos?: string;
   link: string;
   detail: string;
   images: string[];
@@ -18,6 +19,7 @@ export type Data = {
   role: string;
   intro: string;
   avatar: string;
+  avatarPos?: string;
   cvUrl?: string;
   about: string;
   skills: string[];
@@ -36,7 +38,7 @@ export const DEFAULT: Data = {
   role: "นิศัลมี ปูเต๊ะ (มีมี่) ",
   intro: "School of Infomatics (Digital Technology in Medicine)",
   avatar: "/profile.jpg",
-  cvUrl: "https://drive.google.com/", // เปลี่ยนเป็นลิงก์ Google CV จริงของคุณได้เลย
+  cvUrl: "https://drive.google.com/file/d/1Qe2J_UmEgjF5NQZdMstOY4EQWdCOw1Wl/view?usp=sharing", // ลิงก์ Google CV 
   about:
     "Hello, I am Nisalmi Puteh, a third-year undergraduate student majoring in Digital Technology in Medicine at the School of Informatics, Walailak University. I am dedicated to applying technological knowledge and systematic problem-solving skills to develop practical and effective solutions. I am a highly responsible and detail-oriented individual who is always eager to learn new tools and workflows. Adaptable and collaborative by nature, I am looking forward to contributing my skills to support your team's objectives while gaining valuable real-world experience through an internship.",
   skills: [""],
@@ -91,7 +93,7 @@ function normalizeData(raw: Partial<Data> | null | undefined): Data {
   return {
     ...base,
     avatar: base.avatar?.trim() ? base.avatar : DEFAULT.avatar,
-    cvUrl: base.cvUrl?.trim() ? base.cvUrl : DEFAULT.cvUrl,
+    cvUrl: (base.cvUrl?.trim() ? base.cvUrl : DEFAULT.cvUrl) ?? "",
   };
 }
 

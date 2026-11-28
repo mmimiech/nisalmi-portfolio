@@ -205,6 +205,111 @@ function ImagePick({
   );
 }
 
+function ImageFrame({
+  src,
+  alt,
+  pos = "50% 50%",
+  edit,
+  onPosChange,
+  onPick,
+  onError,
+  imgClassName = "",
+  pickLabel = "📷 เปลี่ยนรูป",
+  emptyContent,
+}: {
+  src: string;
+  alt: string;
+  pos?: string;
+  edit: boolean;
+  onPosChange: (pos: string) => void;
+  onPick: (url: string) => void;
+  onError?: (msg: string) => void;
+  imgClassName?: string;
+  pickLabel?: string;
+  emptyContent?: ReactNode;
+}) {
+  const dragging = useRef(false);
+  const start = useRef({ x: 0, y: 0, px: 50, py: 50 });
+
+  const parsePos = (p: string) => {
+    const m = p.match(/([\d.]+)%\s+([\d.]+)%/);
+    return m ? { x: parseFloat(m[1]!), y: parseFloat(m[2]!) } : { x: 50, y: 50 };
+  };
+
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!edit || !src) return;
+    e.preventDefault();
+    dragging.current = true;
+    const cur = parsePos(pos);
+    start.current = { x: e.clientX, y: e.clientY, px: cur.x, py: cur.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dx = ((e.clientX - start.current.x) / Math.max(1, rect.width)) * 100;
+    const dy = ((e.clientY - start.current.y) / Math.max(1, rect.height)) * 100;
+    const nx = clamp(start.current.px - dx);
+    const ny = clamp(start.current.py - dy);
+    onPosChange(`${nx}% ${ny}%`);
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      className={`relative h-full w-full select-none ${
+        edit && src ? "cursor-grab active:cursor-grabbing touch-none" : ""
+      }`}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt={alt}
+          draggable={false}
+          style={{ objectPosition: pos }}
+          className={`h-full w-full object-cover ${imgClassName}`}
+        />
+      ) : (
+        emptyContent
+      )}
+
+      {edit && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute inset-x-2 bottom-2 z-10 flex items-center justify-between gap-2"
+        >
+          {src && (
+            <span className="rounded-full border bg-card/90 px-2.5 py-1 text-[11px] font-semibold shadow-sm">
+              ✥ ลากเลื่อน ({pos})
+            </span>
+          )}
+          <ImagePick
+            onPick={(url) => {
+              onPick(url);
+              onPosChange("50% 50%");
+            }}
+            onError={onError}
+            className="ml-auto rounded-full border-2 bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm"
+          >
+            {pickLabel}
+          </ImagePick>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Index() {
   const [d, setD] = useState<Data>(DEFAULT);
   const [edit, setEdit] = useState(false);
@@ -264,6 +369,7 @@ function Index() {
           tag: "New",
           caption: "คำบรรยายผลงาน",
           image: "",
+          imagePos: "50% 50%",
           link: "",
           detail: "",
           images: [],
@@ -388,21 +494,22 @@ function Index() {
             <div className="absolute -right-6 -top-6 z-10 grid h-24 w-24 place-items-center rounded-full border-2 bg-primary font-display text-xs font-bold spin-slow">
               ✦ I'm here!
             </div>
-            <ImagePick
-              onPick={(s) => set("avatar", s)}
-              onError={flash}
-              className={edit ? "" : "pointer-events-none"}
-            >
-              <div className="float-slow aspect-[4/5] overflow-hidden rounded-3xl border-2 bg-accent brut-lg">
-                {d.avatar ? (
-                  <img src={d.avatar} alt={d.name} className="h-full w-full object-cover" />
-                ) : (
+            <div className="float-slow aspect-[4/5] overflow-hidden rounded-3xl border-2 bg-accent brut-lg">
+              <ImageFrame
+                src={d.avatar}
+                alt={d.name}
+                pos={d.avatarPos ?? "50% 50%"}
+                edit={edit}
+                onPosChange={(pos) => set("avatarPos", pos)}
+                onPick={(s) => set("avatar", s)}
+                onError={flash}
+                emptyContent={
                   <div className="grid h-full place-items-center text-center font-display text-7xl text-accent-foreground">
                     ☺<span className="block text-sm">{edit ? "แตะเพื่อใส่รูป" : ""}</span>
                   </div>
-                )}
-              </div>
-            </ImagePick>
+                }
+              />
+            </div>
             <span className="absolute -bottom-4 -left-6 rotate-6 rounded-xl border-2 bg-card px-3 py-1 text-sm font-semibold brut">
               📍 {d.location}
             </span>
@@ -451,47 +558,44 @@ function Index() {
                 }`}
               >
                 <div className="relative aspect-[4/3] overflow-hidden border-b-2 bg-muted">
-                  {p.image ? (
-                    edit ? (
-                      <img src={p.image} alt={p.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <Link to="/project/$id" params={{ id: p.id }}>
+                  {edit ? (
+                    <ImageFrame
+                      src={p.image}
+                      alt={p.title}
+                      pos={p.imagePos ?? "50% 50%"}
+                      edit={true}
+                      onPosChange={(pos) => setP(p.id, { imagePos: pos })}
+                      onPick={(s) => setP(p.id, { image: s })}
+                      onError={flash}
+                      emptyContent={
+                        <div className="grid h-full place-items-center font-display text-5xl text-muted-foreground">
+                          ✦
+                        </div>
+                      }
+                    />
+                  ) : (
+                    <Link to="/project/$id" params={{ id: p.id }} className="block h-full w-full">
+                      {p.image ? (
                         <img
                           src={p.image}
                           alt={p.title}
+                          style={{ objectPosition: p.imagePos ?? "50% 50%" }}
                           className="h-full w-full cursor-pointer object-cover transition duration-500 group-hover:scale-110"
                         />
-                      </Link>
-                    )
-                  ) : edit ? (
-                    <div className="grid h-full place-items-center font-display text-5xl text-muted-foreground">
-                      ✦
-                    </div>
-                  ) : (
-                    <Link
-                      to="/project/$id"
-                      params={{ id: p.id }}
-                      className="grid h-full place-items-center font-display text-5xl text-muted-foreground"
-                    >
-                      ✦
+                      ) : (
+                        <div className="grid h-full place-items-center font-display text-5xl text-muted-foreground">
+                          ✦
+                        </div>
+                      )}
                     </Link>
                   )}
                   <span
-                    className={`absolute left-3 top-3 rounded-full border-2 px-3 py-0.5 text-xs font-bold ${
+                    className={`absolute left-3 top-3 z-10 rounded-full border-2 px-3 py-0.5 text-xs font-bold ${
                       TAG_BG[i % 3]
                     }`}
                   >
                     {p.tag}
                   </span>
-                  {edit && (
-                    <ImagePick
-                      onPick={(s) => setP(p.id, { image: s })}
-                      onError={flash}
-                      className="absolute inset-0 grid place-items-center bg-secondary/50 font-semibold text-secondary-foreground"
-                    >
-                      📷 เปลี่ยนรูป
-                    </ImagePick>
-                  )}
                 </div>
                 <div className="space-y-2 p-5">
                   <h3 className="text-xl font-bold">

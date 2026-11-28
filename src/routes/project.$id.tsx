@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/client";
 import {
   DEFAULT,
@@ -102,6 +102,115 @@ function ImagePick({
   );
 }
 
+function GalleryImageFrame({
+  src,
+  alt,
+  pos = "50% 50%",
+  edit,
+  onPosChange,
+  onOpenLightbox,
+  onRemove,
+}: {
+  src: string;
+  alt: string;
+  pos?: string;
+  edit: boolean;
+  onPosChange: (nextPos: string) => void;
+  onOpenLightbox: () => void;
+  onRemove: () => void;
+}) {
+  const dragging = useRef(false);
+  const moved = useRef(false);
+  const start = useRef({ x: 0, y: 0, px: 50, py: 50 });
+
+  const parsePos = (p: string) => {
+    const m = p.match(/([\d.]+)%\s+([\d.]+)%/);
+    return m ? { x: parseFloat(m[1]!), y: parseFloat(m[2]!) } : { x: 50, y: 50 };
+  };
+
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!edit) return;
+    e.preventDefault();
+    dragging.current = true;
+    moved.current = false;
+    const cur = parsePos(pos);
+    start.current = { x: e.clientX, y: e.clientY, px: cur.x, py: cur.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    const dx = ((e.clientX - start.current.x) / Math.max(1, e.currentTarget.clientWidth)) * 100;
+    const dy = ((e.clientY - start.current.y) / Math.max(1, e.currentTarget.clientHeight)) * 100;
+    if (Math.abs(e.clientX - start.current.x) > 3 || Math.abs(e.clientY - start.current.y) > 3) {
+      moved.current = true;
+    }
+    onPosChange(`${clamp(start.current.px - dx)}% ${clamp(start.current.py - dy)}%`);
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      className={`group relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl border-2 bg-muted brut ${
+        edit ? "cursor-grab active:cursor-grabbing touch-none" : ""
+      }`}
+    >
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        onClick={() => {
+          if (!edit && !moved.current) onOpenLightbox();
+        }}
+        style={{ objectPosition: pos }}
+        className={`h-full w-full object-cover transition duration-500 ${
+          !edit ? "cursor-zoom-in group-hover:scale-105" : ""
+        }`}
+      />
+
+      {edit && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2"
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-full border bg-card/95 px-2.5 py-1 text-[11px] font-semibold shadow-sm">
+              ✥ ลากจัดตำแหน่ง ({pos})
+            </span>
+            {pos !== "50% 50%" && (
+              <button
+                type="button"
+                onClick={() => onPosChange("50% 50%")}
+                className="rounded-full border bg-card/95 px-2.5 py-1 text-[11px] font-semibold shadow-sm hover:bg-muted"
+              >
+                รีเซ็ต
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-full border-2 bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground shadow-sm"
+          >
+            ลบรูปนี้
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjectPage() {
   const { id } = useParams({ from: "/project/$id" });
   const [d, setD] = useState<Data>(DEFAULT);
@@ -173,7 +282,39 @@ function ProjectPage() {
       </div>
     );
 
-  const images = [p.image, ...(p.images ?? [])].filter(Boolean);
+  type ProjectWithGalleryPos = Project & { galleryPos?: Record<string, string> };
+  const proj = p as ProjectWithGalleryPos;
+  const galleryPosMap = proj.galleryPos ?? {};
+
+  const items: Array<{ src: string; isMain: boolean; extraIndex?: number }> = [
+    ...(p.image ? [{ src: p.image, isMain: true }] : []),
+    ...(p.images ?? [])
+      .map((src, idx) => ({ src, isMain: false, extraIndex: idx }))
+      .filter((item) => Boolean(item.src)),
+  ];
+
+  const getItemPos = (item: { src: string; isMain: boolean }) =>
+    item.isMain ? (p.imagePos ?? "50% 50%") : (galleryPosMap[item.src] ?? "50% 50%");
+
+  const setItemPos = (item: { src: string; isMain: boolean }, nextPos: string) => {
+    if (item.isMain) {
+      setP({ imagePos: nextPos });
+      return;
+    }
+    const nextMap = { ...galleryPosMap, [item.src]: nextPos };
+    setP({ galleryPos: nextMap } as Partial<Project>);
+  };
+
+  const removeItem = (item: { src: string; isMain: boolean; extraIndex?: number }) => {
+    if (item.isMain) {
+      setP({ image: "", imagePos: "50% 50%" });
+      return;
+    }
+    const nextImages = (p.images ?? []).filter((_, idx) => idx !== item.extraIndex);
+    const nextMap = { ...galleryPosMap };
+    delete nextMap[item.src];
+    setP({ images: nextImages, galleryPos: nextMap } as Partial<Project>);
+  };
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -213,43 +354,38 @@ function ProjectPage() {
 
         {/* gallery */}
         <div className="mt-10 grid items-start gap-6 sm:grid-cols-2">
-          {images.map((src, i) => (
-            <div
-              key={i}
-              className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border-2 bg-muted brut"
-            >
-              <img
-                src={src}
-                alt={`${p.title} ${i + 1}`}
-                onClick={() => !edit && setLightbox(src)}
-                className="h-full w-full cursor-zoom-in object-cover object-top transition duration-500 group-hover:scale-105"
-              />
-              {edit && (
-                <button
-                  onClick={() => {
-                    if (i === 0) setP({ image: "" });
-                    else setP({ images: (p.images ?? []).filter((_, j) => j !== i - 1) });
-                  }}
-                  className="absolute right-3 top-3 rounded-full border-2 bg-destructive px-3 py-1 text-sm font-bold text-destructive-foreground"
-                >
-                  ลบรูปนี้
-                </button>
-              )}
-            </div>
+          {items.map((item, i) => (
+            <GalleryImageFrame
+              key={`${item.src}-${i}`}
+              src={item.src}
+              alt={`${p.title} ${i + 1}`}
+              pos={getItemPos(item)}
+              edit={edit}
+              onPosChange={(nextPos) => setItemPos(item, nextPos)}
+              onOpenLightbox={() => setLightbox(item.src)}
+              onRemove={() => removeItem(item)}
+            />
           ))}
           {edit && (
             <ImagePick
-              onPick={(s) =>
-                setP(images.length === 0 ? { image: s } : { images: [...(p.images ?? []), s] })
-              }
+              onPick={(s) => {
+                if (!p.image) {
+                  setP({ image: s, imagePos: "50% 50%" });
+                } else {
+                  setP({
+                    images: [...(p.images ?? []), s],
+                    galleryPos: { ...galleryPosMap, [s]: "50% 50%" },
+                  } as Partial<Project>);
+                }
+              }}
               onError={flash}
-              className="grid aspect-[4/3] w-full place-items-center rounded-2xl border-2 border-dashed bg-card/50 font-display text-xl font-bold transition hover:bg-primary"
+              className="grid aspect-[16/10] w-full place-items-center rounded-2xl border-2 border-dashed bg-card/50 font-display text-xl font-bold transition hover:bg-primary"
             >
               + เพิ่มรูป
             </ImagePick>
           )}
         </div>
-        {images.length === 0 && !edit && (
+        {items.length === 0 && !edit && (
           <div className="mt-10 grid h-48 place-items-center rounded-2xl border-2 bg-muted font-display text-5xl text-muted-foreground">
             ✦
           </div>
